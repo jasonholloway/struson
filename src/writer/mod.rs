@@ -723,6 +723,17 @@ pub trait StringValueWriter: Write {
     /// it, an error is returned.
     /* Consumes 'self' */
     fn finish_value(self) -> Result<(), IoError>;
+
+    /// Finishes the JSON string value
+    ///
+    /// This method must be called when writing the string value is done to allow
+    /// using the original JSON writer again.
+    ///
+    /// # Errors
+    /// If the last writing call has started a multi-byte UTF-8 character but has not completed
+    /// it, an error is returned.
+    /* Consumes 'self' */
+    fn finish_value_boxed(self: Box<Self>) -> Result<(), IoError>;
 }
 
 /// Sealed trait for finite number types such as `u32`
@@ -1461,13 +1472,6 @@ mod tests {
             let _ = DefaultNumberFormatter
                 .format_number_str::<(), _>("01", |_| panic!("should not be called"));
         }
-    }
-}
-
-impl<T: StringValueWriter> StringValueWriter for Box<T> {
-    fn finish_value(self) -> Result<(), IoError> {
-        let moved: T = *self;
-        moved.finish_value()
     }
 }
 

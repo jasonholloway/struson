@@ -1011,6 +1011,11 @@ impl<W: Write, NF: NumberFormatter> StringValueWriter for StringValueWriterImpl<
         self.json_writer.i.is_string_value_writer_active = false;
         self.json_writer.i.after_value()
     }
+
+    fn finish_value_boxed(self: Box<Self>) -> Result<(), IoError> {
+        let moved: Self = *self;
+        moved.finish_value()
+    }
 }
 
 #[cfg(test)]
