@@ -811,6 +811,17 @@ impl<W: Write, NF: NumberFormatter> JsonWriter for JsonStreamWriter<W, NF> {
         Ok(self.i.writer.0)
     }
 
+    fn finish_document_boxed(mut self: Box<Self>) -> Result<Self::WriterResult, IoError> {
+        self.i.on_finish();
+        // Flush the underlying writer to
+        // - fail fast if there is an issue writing the data
+        //   (otherwise this might only happen implicitly when the underlying writer is dropped,
+        //    and the error is silently discarded or reported as panic)
+        // - avoid that the user has to obtain the writer again and manually call `flush`
+        self.i.writer.flush()?;
+        Ok(self.i.writer.0)
+    }
+
     fn string_value_writer(&mut self) -> Result<impl StringValueWriter + '_, IoError> {
         self.i.before_value()?;
         self.i.writer.write(b"\"")?;

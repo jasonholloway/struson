@@ -247,6 +247,10 @@ mod custom_writer {
                 panic_incorrect_usage("Top-level value is incomplete");
             }
         }
+
+        fn finish_document_boxed(self: Box<Self>) -> Result<Self::WriterResult, IoError> {
+            self.finish_document()
+        }
     }
 
     struct StringValueWriterImpl<'j> {

@@ -610,6 +610,39 @@ pub trait JsonWriter {
      * TODO: Does consuming 'self' here really guarantee that writer cannot be used afterwards anymore; can this be bypassed with reference somehow?
      */
     fn finish_document(self) -> Result<Self::WriterResult, IoError>;
+
+    /// Verifies that the JSON document is complete and flushes the buffer
+    ///
+    /// Returns the [`WriterResult`](Self::WriterResult) on success. Depending on the
+    /// JSON writer implementation this can for example be the written JSON value.
+    /// The result might not be relevant for all JSON writer implementations, for example
+    /// a JSON writer writing to a `Write` will already produce the JSON document during
+    /// usage, so the `WriterResult` returned by this method can be ignored.
+    ///
+    /// Depending on the implementation this method might flush internal buffers,
+    /// and might also perform a flush operation on the underlying destination of the data.
+    /// For example a JSON writer writing to a `Write` might first write all remaining
+    /// data to it and afterwards call its `flush` method.
+    ///
+    /// This method **must** be called explicitly. Dropping the JSON writer will not
+    /// verify that the JSON document is complete and, depending on the JSON writer
+    /// implementation, will not flush any buffers.
+    ///
+    /// **Important:** It is expected that there is always at least one top-level value
+    /// in a JSON document, so calling this method without having written a value yet
+    /// will panic, see "Panics" section below.
+    ///
+    /// # Panics
+    /// Panics when called on a JSON writer which has not written any top-level yet (unless
+    /// empty documents are [enabled in the `WriterSettings`](WriterSettings::allow_empty_document)),
+    /// or when called while the top-level value has not been fully written yet. Both cases
+    /// indicate incorrect usage by the user.
+    /*
+     * Consumes boxed instance of 'self'
+     * Note: Dropping writer will not automatically finish document since that would silently discard errors which might occur
+     * TODO: Does consuming 'self' here really guarantee that writer cannot be used afterwards anymore; can this be bypassed with reference somehow?
+     */
+    fn finish_document_boxed(self: Box<Self>) -> Result<Self::WriterResult, IoError>;
 }
 
 /// Writer for lazily writing a JSON string value
@@ -1430,3 +1463,11 @@ mod tests {
         }
     }
 }
+
+impl<T: StringValueWriter> StringValueWriter for Box<T> {
+    fn finish_value(self) -> Result<(), IoError> {
+        let moved: T = *self;
+        moved.finish_value()
+    }
+}
+
